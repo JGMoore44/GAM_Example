@@ -1,0 +1,54 @@
+---
+title: "Predictive Analytics HW4"
+author: "Jimmy G. Moore"
+date: "October 19, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##Introduction
+We will build a generalized additive model (GAM) to predict the outcome of 100 observations with unobserved response variables. Our evaluation criteria will be in minimizing MSE of prediction. The data set contains 1000 observations each with 25 features (x1-x25) and a response variable y. The response variable is observed for the first 900 observations and missing for the last 100 observations.
+
+##Analysis
+### Data Set up
+We begin our analysis by loading the data set into our environment and removing subject id from the set.
+
+```{r}
+#Read Data
+dat = read.csv("C:/Users/James Moore/Documents/GAM_Example/files/PredictiveHW4Dataset.csv")
+#remove ID
+dat = dat[,!(names(dat)%in% c("id"))]
+```
+
+Now we will divide our data into a training and test set.
+```{r}
+#create training set
+obsResponse = dat[which(!is.na(dat$y)),]
+#create test set
+predResponse = dat[which(is.na(dat$y)),]
+```
+
+Since we will be doing a lot of cross validation it will also be adventageous to have a function that allows us to quickly shift between training and test folds without having the `fold` variable in our training and test sets. The below function inputs a dataset, and the type of cross validation you wish to conduct (i.e. 5-fold CV). The function returns a training or test set based on which folds the user would like to train and test on. 
+```{r}
+###
+# Function: setTrainTest
+setTrainTest = function(dat,option="train",foldToTest=1,kfold = 5){
+  ## create folds
+  for(j in 1:nrow(dat)){
+    foldNum = (j-1)%%kfold + 1
+    dat$fold[j] = foldNum
+  }
+  if(option == "train"){
+    trainingSet = dat[-which(dat$fold==foldToTest),]
+    trainingSet = subset(trainingSet, select = -c(fold))
+    return(trainingSet)
+  }else{
+    testSet = dat[which(dat$fold==foldToTest),]
+    testSet = subset(testSet,select = -c(fold))
+    return(testSet)
+  }
+}
+```
